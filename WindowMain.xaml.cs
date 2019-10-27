@@ -33,6 +33,13 @@ namespace fftWavEncryption
             {
                 filename = ofd.FileName;
                 WavFormatManager wfm = new WavFormatManager(filename);
+
+                SaveFileDialog sfd = new SaveFileDialog();
+                if (sfd.ShowDialog() == true)
+                {
+                    filename = sfd.FileName;
+                    wfm.EncodeFile(filename);
+                }
             }
         }
     }
