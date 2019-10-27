@@ -60,6 +60,10 @@ namespace fftWavEncryption
             this.DecodeFile(filename);
         }
 
+        /// <summary>
+        /// Decodes the wav file given as parameter
+        /// </summary>
+        /// <param name="filename">Name of the file to be decoded</param>
         public void DecodeFile(String filename)
         {
             FileStream inputFile = new FileStream(filename, FileMode.Open, FileAccess.Read);
@@ -147,7 +151,9 @@ namespace fftWavEncryption
             UInt32 sampleCount = dataSize / (UInt32)blockSize;
 
             // this will be used to normalize the samples when converting to float
-            UInt64 maxSampleValue = ((UInt64)1 << this.bitsPerSample) - 1;
+            Int64 maxSampleValue = ((Int64)1 << (this.bitsPerSample - 1)) - 1;
+            Int64 signBit = (Int64)1 << (this.bitsPerSample - 1);
+            Int64 signExtendMask = ~(((Int64)1 << this.bitsPerSample) - 1);
 
             // allocating memory for sample buffers
             this.channelLeft = new float[sampleCount];
@@ -167,21 +173,33 @@ namespace fftWavEncryption
                 inputFile.Read(block, 0, blockSize);
                 if (this.channelCount == 1)
                 {
-                    UInt64 sampleQuanta = 0;
+                    Int64 sampleQuanta = 0;
                     for (int i = 0; i < blockSize; ++i)
                     {
-                        sampleQuanta |= ((UInt64)block[i] << (i * 8));
+                        sampleQuanta |= (((Int64)block[i] & 0xFF) << (i * 8));
+                    }
+                    if ((sampleQuanta & signBit) != 0)
+                    {
+                        sampleQuanta |= signExtendMask;
                     }
                     Double sampleNormalized = (Double)sampleQuanta / (Double)maxSampleValue;
                     this.channelLeft[sampleIndex] = (float)sampleNormalized;
                 }
                 else // if (this.channelCount == 2)
                 {
-                    UInt64 sampleQuantaLeft = 0, sampleQuantaRight = 0; ;
+                    Int64 sampleQuantaLeft = 0, sampleQuantaRight = 0; ;
                     for (int i = 0; i < blockSize / 2; ++i)
                     {
-                        sampleQuantaLeft |= ((UInt64)block[i] << (i * 8));
-                        sampleQuantaRight |= ((UInt64)block[i + blockSize / 2] << (int)(i * 8));
+                        sampleQuantaLeft |= (((Int64)block[i] & 0xFF) << (i * 8));
+                        sampleQuantaRight |= (((Int64)block[i + blockSize / 2] & 0xFF) << (int)(i * 8));
+                    }
+                    if ((sampleQuantaLeft & signBit) != 0)
+                    {
+                        sampleQuantaLeft |= signExtendMask;
+                    }
+                    if ((sampleQuantaRight & signBit) != 0)
+                    {
+                        sampleQuantaRight |= signExtendMask;
                     }
                     Double sampleNormalizedLeft = (Double)sampleQuantaLeft / (Double)maxSampleValue;
                     Double sampleNormalizedRight = (Double)sampleQuantaRight / (Double)maxSampleValue;
@@ -193,6 +211,10 @@ namespace fftWavEncryption
             inputFile.Close();
         }
 
+        /// <summary>
+        /// Encodes the data stored into the local buffers in the file given as parameter.
+        /// </summary>
+        /// <param name="filename">Name of the file to be created.</param>
         public void EncodeFile(String filename)
         {
             // checking all the conditions before starting encoding
@@ -284,13 +306,13 @@ namespace fftWavEncryption
             outputFile.Write(dataDescription, 0, 8);
 
             // writing sound data
-            UInt64 maxSampleValue = ((UInt64)1 << this.bitsPerSample) - 1;
+            Int64 maxSampleValue = ((Int64)1 << (this.bitsPerSample - 1)) - 1;
             Byte[] block = new Byte[blockSize];
             for (int sampleIndex = 0; sampleIndex < this.channelLeft.Length; ++sampleIndex)
             {
                 if (this.channelCount == 1)
                 {
-                    UInt32 sampleQuanta = (UInt32)((Double)this.channelLeft[sampleIndex] * (Double)maxSampleValue);
+                    Int32 sampleQuanta = (Int32)((Double)this.channelLeft[sampleIndex] * (Double)maxSampleValue);
                     for (int i = 0; i < blockSize; ++i)
                     {
                         block[i] = (Byte)((sampleQuanta >> (i * 8)) & 0xFF);
@@ -298,8 +320,8 @@ namespace fftWavEncryption
                 }
                 else // if (this.channelCount == 2)
                 {
-                    UInt32 sampleQuantaLeft = (UInt32)((Double)this.channelLeft[sampleIndex] * (Double)maxSampleValue);
-                    UInt32 sampleQuantaRight = (UInt32)((Double)this.channelRight[sampleIndex] * (Double)maxSampleValue);
+                    Int32 sampleQuantaLeft = (Int32)((Double)this.channelLeft[sampleIndex] * (Double)maxSampleValue);
+                    Int32 sampleQuantaRight = (Int32)((Double)this.channelRight[sampleIndex] * (Double)maxSampleValue);
                     for (int i = 0; i < blockSize / 2; ++i)
                     {
                         block[i] = (Byte)((sampleQuantaLeft >> (i * 8)) & 0xFF);
@@ -312,6 +334,198 @@ namespace fftWavEncryption
 
             outputFile.Flush();
             outputFile.Close();
+        }
+
+        /// <summary>
+        /// Sets the number of audio channels. Calling this function will cause audio buffers to be dumped.
+        /// </summary>
+        /// <param name="value">The desired number of channels.</param>
+        public void SetChannelCount(int value)
+        {
+            if (value != 1 && value != 2)
+            {
+                throw new Exception("Invalid number of channels");
+            }
+
+            this.channelCount = value;
+
+            this.channelLeft = null;
+            this.channelRight = null;
+        }
+
+        /// <summary>
+        /// Updates the sample rate without modufying the audio buffers.
+        /// </summary>
+        /// <param name="value">Desired sample rate.</param>
+        public void SetSampleRate(SampleRate value)
+        {
+            if (value == SampleRate.NullSampleRate)
+            {
+                throw new Exception("Can't set the sample rate to null.");
+            }
+
+            this.sampleRate = value;
+        }
+
+        /// <summary>
+        /// Updates the number of bits per sample for encoding the audio.
+        /// </summary>
+        /// <param name="value">Desired bits per sample.</param>
+        public void SetBitsPerSample(int value)
+        {
+            if (value < 8 || value > 32 || ((value - 1) & value) != 0)
+            {
+                throw new Exception("Unvalid value for bits per sample");
+            }
+
+            this.bitsPerSample = value;
+        }
+
+        /// <summary>
+        /// Returns the number of channels in the current configuration.
+        /// </summary>
+        /// <returns>Number of audio channels.</returns>
+        public int GetNumberOfChannels()
+        {
+            return this.channelCount;
+        }
+
+        /// <summary>
+        /// Returns the sample rate of the current configuration.
+        /// </summary>
+        /// <returns>Sample rate.</returns>
+        public SampleRate GetSampleRate()
+        {
+            return this.sampleRate;
+        }
+
+        /// <summary>
+        /// Returns the number of bits per sample of the current configuration.
+        /// </summary>
+        /// <returns>Bits per sample.</returns>
+        public int GetBitsPerSample()
+        {
+            return this.bitsPerSample;
+        }
+
+        /// <summary>
+        /// Writes the mono channel with the buffer sent as parameter. If the number of channels is not set to 1 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <param name="samples">Array of normalized samples to be copied into the internal buffer.</param>
+        public void WriteAudioMono(float[] samples)
+        {
+            if (this.channelCount != 1)
+            {
+                throw new Exception("The number of channels is not set to 1.");
+            }
+            if (samples == null)
+            {
+                throw new Exception("Null array given as parameter.");
+            }
+
+            this.channelLeft = new float[samples.Length];
+            samples.CopyTo(this.channelLeft, 0);
+        }
+
+        /// <summary>
+        /// Writes the left channel with the buffer sent as parameter. If the number of channels is not set to 2 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <param name="samples"></param>
+        public void WriteAudioLeft(float[] samples)
+        {
+            if (this.channelCount != 2)
+            {
+                throw new Exception("The number of channels is not set to 2.");
+            }
+            if (samples == null)
+            {
+                throw new Exception("Null array given as parameter.");
+            }
+
+            this.channelLeft = new float[samples.Length];
+            samples.CopyTo(this.channelLeft, 0);
+        }
+
+        /// <summary>
+        /// Writes the right channel with the buffer sent as parameter. If the number of channels is not set to 2 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <param name="samples"></param>
+        public void WriteAudioRight(float[] samples)
+        {
+            if (this.channelCount != 2)
+            {
+                throw new Exception("The number of channels is not set to 2.");
+            }
+            if (samples == null)
+            {
+                throw new Exception("Null array given as parameter.");
+            }
+
+            this.channelRight = new float[samples.Length];
+            samples.CopyTo(this.channelRight, 0);
+        }
+
+        /// <summary>
+        /// Returns an array containing the samples of the mono channel. If the number of channels is not set to 1 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <returns>An array of float which contains the normalized samples.</returns>
+        public float[] ReadAudioMono()
+        {
+            if (this.channelCount != 1)
+            {
+                throw new Exception("The number of channels is not set to 1.");
+            }
+            if (this.channelLeft == null)
+            {
+                throw new Exception("The selected channel is null.");
+            }
+
+            float[] samples = new float[this.channelLeft.Length];
+            this.channelLeft.CopyTo(samples, 0);
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Returns an array containing the samples of the mono channel. If the number of channels is not set to 2 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <returns>An array of float which contains the normalized samples.</returns>
+        public float[] ReadAudioLeft()
+        {
+            if (this.channelCount != 2)
+            {
+                throw new Exception("The number of channels is not set to 2.");
+            }
+            if (this.channelLeft == null)
+            {
+                throw new Exception("The selected channel is null.");
+            }
+
+            float[] samples = new float[this.channelLeft.Length];
+            this.channelLeft.CopyTo(samples, 0);
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Returns an array containing the samples of the mono channel. If the number of channels is not set to 2 prior to calling this function, it will throw an exception.
+        /// </summary>
+        /// <returns>An array of float which contains the normalized samples.</returns>
+        public float[] ReadAudioRight()
+        {
+            if (this.channelCount != 2)
+            {
+                throw new Exception("The number of channels is not set to 2.");
+            }
+            if (this.channelRight == null)
+            {
+                throw new Exception("The selected channel is null.");
+            }
+
+            float[] samples = new float[this.channelRight.Length];
+            this.channelRight.CopyTo(samples, 0);
+
+            return samples;
         }
     }
 }
