@@ -373,7 +373,7 @@ namespace fftWavEncryption
         /// <param name="value">Desired bits per sample.</param>
         public void SetBitsPerSample(int value)
         {
-            if (value < 8 || value > 32 || ((value - 1) & value) != 0)
+            if (value < 8 || value > 32 || (value % 8 != 0))
             {
                 throw new Exception("Unvalid value for bits per sample");
             }

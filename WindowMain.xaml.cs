@@ -38,6 +38,7 @@ namespace fftWavEncryption
                 if (sfd.ShowDialog() == true)
                 {
                     filename = sfd.FileName;
+                    wfm.SetBitsPerSample(24);
                     wfm.EncodeFile(filename);
                 }
             }
