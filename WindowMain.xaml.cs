@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -43,15 +44,15 @@ namespace fftWavEncryption
 
                 if (wfm.GetNumberOfChannels() == 1)
                 {
-                    Complex[] monoF = FourierTransform.FFT(wfm.ReadAudioMono());
-                    wfm.WriteAudioMono(FourierTransform.IFFT(monoF));
+                    Complex[] monoF = FourierTransform.FFT_segmented(wfm.ReadAudioMono());
+                    wfm.WriteAudioMono(FourierTransform.IFFT_segmented(monoF));
                 }
                 else
                 {
-                    Complex[] leftF = FourierTransform.FFT(wfm.ReadAudioLeft());
-                    Complex[] rightF = FourierTransform.FFT(wfm.ReadAudioRight());
-                    wfm.WriteAudioLeft(FourierTransform.IFFT(leftF));
-                    wfm.WriteAudioRight(FourierTransform.IFFT(rightF));
+                    Complex[] leftF = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
+                    Complex[] rightF = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
+                    wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
+                    wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
                 }
 
                 SaveFileDialog sfd = new SaveFileDialog();
