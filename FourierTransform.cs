@@ -5,7 +5,7 @@ namespace fftWavEncryption
 {
     class FourierTransform
     {
-        private const int segmentSize = 0x2000;
+        public const int segmentSize = 0x2000;
 
         /// <summary>
         /// This function calculates direct DFT on a float vector. This function might extend the vector in order for it's size to match the algorith's requirements.

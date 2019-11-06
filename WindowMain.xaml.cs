@@ -51,6 +51,8 @@ namespace fftWavEncryption
                 {
                     Complex[] leftF = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
                     Complex[] rightF = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
+                    CryptoFFT.Encrypt(leftF);
+                    CryptoFFT.Encrypt(rightF);
                     wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
                     wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
                 }

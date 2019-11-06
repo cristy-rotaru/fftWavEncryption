@@ -74,6 +74,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CryptoFFT.cs" />
     <Compile Include="FourierTransform.cs" />
     <Compile Include="WavFormatManager.cs" />
     <Compile Include="WindowMain.xaml.cs">
