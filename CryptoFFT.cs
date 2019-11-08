@@ -25,7 +25,7 @@ namespace fftWavEncryption
             {
                 Complex swap;
 
-                for (int j = 1; j < (FourierTransform.segmentSize >> 2) - 1; ++j)
+                for (int j = 1; j < (FourierTransform.segmentSize >> 2); ++j)
                 {
                     swap = fftVector[i + j];
                     fftVector[i + j] = fftVector[i + (FourierTransform.segmentSize >> 1) - j];

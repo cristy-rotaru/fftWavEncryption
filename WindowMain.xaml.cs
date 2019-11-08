@@ -55,13 +55,20 @@ namespace fftWavEncryption
                     CryptoFFT.Encrypt(rightF);
                     wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
                     wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
+
+                    leftF = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
+                    rightF = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
+                    CryptoFFT.Encrypt(leftF);
+                    CryptoFFT.Encrypt(rightF);
+                    wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
+                    wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
                 }
 
                 SaveFileDialog sfd = new SaveFileDialog();
                 if (sfd.ShowDialog() == true)
                 {
                     filename = sfd.FileName;
-                    wfm.SetBitsPerSample(24);
+                    wfm.SetBitsPerSample(32);
                     wfm.EncodeFile(filename);
                 }
             }
