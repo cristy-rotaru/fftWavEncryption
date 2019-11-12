@@ -5,8 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:fftWavEncryption"
         mc:Ignorable="d"
-        Title="WindowMain" Height="450" Width="800" Loaded="Window_Loaded">
+        Title="WindowMain" Height="700" Width="1100" Loaded="Window_Loaded" WindowState="Maximized" Background="#FFA0A0A0" FontFamily="Gadugi" FontSize="15">
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="7*" />
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer Grid.Row="0" Grid.Column="0">
+            <StackPanel Name="stackPanelSoundItems" Orientation="Vertical" Margin="1">
+                <Button Name="buttonAddSoundFromFile" Margin="5" ToolTip="Add sound from .wav file" Style="{DynamicResource ButtonStyleDarkMode}">
+                    <Image Source="Resources/add_file.png" Stretch="Uniform" Height="55" />
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Window>
