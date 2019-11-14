@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -13,7 +14,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace fftWavEncryption
 {
@@ -22,6 +22,10 @@ namespace fftWavEncryption
     /// </summary>
     public partial class WindowMain : Window
     {
+        private delegate void AddSoundPanelDelegate(WavFormatManager wfm, String displayName);
+
+        List<SoundPanel> soundPanelList = new List<SoundPanel>();
+
         public WindowMain()
         {
             InitializeComponent();
@@ -29,8 +33,61 @@ namespace fftWavEncryption
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            Thread th = new Thread(new ThreadStart(ThreadFunction));
-            th.Start();
+
+        }
+
+        private void buttonAddSoundFromFile_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "Wav files|*.wav|All files|*";
+
+            if (ofd.ShowDialog() == true)
+            {
+                String fileName = ofd.FileName;
+
+                buttonAddSoundFromFile.IsEnabled = false;
+
+                Thread loaderThread = new Thread(new ParameterizedThreadStart(ThreadFunctionLoadSoundFromFile));
+                loaderThread.Start(fileName);
+            }
+        }
+
+        private void ThreadFunctionLoadSoundFromFile(Object fileName)
+        {
+            String stringFileName = (String)fileName;
+
+            WavFormatManager wfm = new WavFormatManager();
+
+            try
+            {
+                wfm.DecodeFile(stringFileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "", MessageBoxButton.OK, MessageBoxImage.Error);
+                Dispatcher.Invoke(new AddSoundPanelDelegate(CommitLoadToInterface), null, "");
+                return;
+            }
+
+            Dispatcher.Invoke(new AddSoundPanelDelegate(CommitLoadToInterface), wfm, Path.GetFileNameWithoutExtension(stringFileName));
+        }
+
+        private void CommitLoadToInterface(WavFormatManager wfm, String displayName)
+        {
+            buttonAddSoundFromFile.IsEnabled = true;
+
+            if (wfm != null)
+            {
+                SoundPanel sp = new SoundPanel(wfm, displayName);
+                sp.SetEncryptButtonHandler(new Action(() => { MessageBox.Show("Encrypt"); }));
+                sp.SetDecryptButtonHandler(new Action(() => { MessageBox.Show("Decrypt"); }));
+                sp.SetPlayButtonHandler(new Action(() => { MessageBox.Show("Play"); }));
+
+                int z = soundPanelList.Count;
+
+                stackPanelSoundItems.Children.Insert(z, sp);
+                soundPanelList.Add(sp);
+            }
         }
 
         private void ThreadFunction()

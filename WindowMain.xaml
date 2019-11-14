@@ -18,7 +18,7 @@
 
         <ScrollViewer Grid.Row="0" Grid.Column="0">
             <StackPanel Name="stackPanelSoundItems" Orientation="Vertical" Margin="1">
-                <Button Name="buttonAddSoundFromFile" Margin="5" ToolTip="Add sound from .wav file" Style="{DynamicResource ButtonStyleDarkMode}">
+                <Button Name="buttonAddSoundFromFile" Margin="5" ToolTip="Add sound from .wav file" Style="{DynamicResource ButtonStyleDarkMode}" Click="buttonAddSoundFromFile_Click">
                     <Image Source="Resources/add_file.png" Stretch="Uniform" Height="55" />
                 </Button>
             </StackPanel>
