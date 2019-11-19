@@ -9,7 +9,7 @@ namespace fftWavEncryption
 {
     class CryptoFFT
     {
-        public static void Encrypt(Complex[] fftVector, String password = "password")
+        public static void Encrypt(Complex[] fftVector, String password)
         {
             if (fftVector == null)
             {
@@ -36,7 +36,7 @@ namespace fftWavEncryption
             }
         }
 
-        public static void Decrypt(Complex[] fftVector, String password = "password")
+        public static void Decrypt(Complex[] fftVector, String password)
         {
             if (fftVector == null)
             {

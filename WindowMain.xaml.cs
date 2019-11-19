@@ -52,6 +52,31 @@ namespace fftWavEncryption
             }
         }
 
+        private void ActionEncrypt(SoundPanel sp)
+        {
+            Thread th = new Thread(new ThreadStart(() => { ThreadFunctionActionEncrypt(sp.GetFormatManager(), sp.GetDisplayName()); }));
+            th.SetApartmentState(ApartmentState.STA);
+            th.Start();
+        }
+
+        private void ActionDecrypt(SoundPanel sp)
+        {
+            Thread th = new Thread(new ThreadStart(() => { ThreadFunctionActionDecrypt(sp.GetFormatManager(), sp.GetDisplayName()); }));
+            th.SetApartmentState(ApartmentState.STA);
+            th.Start();
+        }
+
+        private void ActionPlay(SoundPanel sp)
+        {
+            MessageBox.Show("Play " + sp.GetDisplayName());
+        }
+
+        private void ActionSave(SoundPanel sp)
+        {
+            Thread th = new Thread(new ThreadStart(() => { ThreadFunctionActionSave(sp.GetFormatManager(), sp.GetDisplayName()); }));
+            th.Start();
+        }
+
         private void ThreadFunctionLoadSoundFromFile(Object fileName)
         {
             String stringFileName = (String)fileName;
@@ -72,6 +97,86 @@ namespace fftWavEncryption
             Dispatcher.Invoke(new AddSoundPanelDelegate(CommitLoadToInterface), wfm, Path.GetFileNameWithoutExtension(stringFileName));
         }
 
+        private void ThreadFunctionActionEncrypt(WavFormatManager wfm, String originalName)
+        {
+            WindowPasswordInput wpi = new WindowPasswordInput(WindowPasswordInput.ProcessType.ENCRYPTION, originalName);
+
+            if (wpi.ShowDialog() == true)
+            {
+                WavFormatManager encryptedSound = new WavFormatManager();
+                encryptedSound.SetBitsPerSample(24);
+                encryptedSound.SetSampleRate(wfm.GetSampleRate());
+
+                if (wfm.GetNumberOfChannels() == 1)
+                {
+                    encryptedSound.SetChannelCount(1);
+
+                    Complex[] frq = FourierTransform.FFT_segmented(wfm.ReadAudioMono());
+                    CryptoFFT.Encrypt(frq, wpi.GetPassword());
+                    encryptedSound.WriteAudioMono(FourierTransform.IFFT_segmented(frq));
+                }
+                else
+                {
+                    encryptedSound.SetChannelCount(2);
+
+                    Complex[] frqLeft = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
+                    Complex[] frqRight = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
+                    CryptoFFT.Encrypt(frqLeft, wpi.GetPassword());
+                    CryptoFFT.Encrypt(frqRight, wpi.GetPassword());
+                    encryptedSound.WriteAudioLeft(FourierTransform.IFFT_segmented(frqLeft));
+                    encryptedSound.WriteAudioRight(FourierTransform.IFFT_segmented(frqRight));
+                }
+
+                Dispatcher.Invoke(new AddSoundPanelDelegate(CommitProcessedSoundToInterface), encryptedSound, wpi.GetName());
+            }
+        }
+
+        private void ThreadFunctionActionSave(WavFormatManager wfm, String originalName)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.FileName = originalName + ".wav";
+            if (sfd.ShowDialog() == true)
+            {
+                String filename = sfd.FileName;
+                wfm.SetBitsPerSample(24);
+                wfm.EncodeFile(filename);
+            }
+        }
+
+        private void ThreadFunctionActionDecrypt(WavFormatManager wfm, String originalName)
+        {
+            WindowPasswordInput wpi = new WindowPasswordInput(WindowPasswordInput.ProcessType.DECRYPTION, originalName);
+
+            if (wpi.ShowDialog() == true)
+            {
+                WavFormatManager encryptedSound = new WavFormatManager();
+                encryptedSound.SetBitsPerSample(24);
+                encryptedSound.SetSampleRate(wfm.GetSampleRate());
+
+                if (wfm.GetNumberOfChannels() == 1)
+                {
+                    encryptedSound.SetChannelCount(1);
+
+                    Complex[] frq = FourierTransform.FFT_segmented(wfm.ReadAudioMono());
+                    CryptoFFT.Decrypt(frq, wpi.GetPassword());
+                    encryptedSound.WriteAudioMono(FourierTransform.IFFT_segmented(frq));
+                }
+                else
+                {
+                    encryptedSound.SetChannelCount(2);
+
+                    Complex[] frqLeft = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
+                    Complex[] frqRight = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
+                    CryptoFFT.Decrypt(frqLeft, wpi.GetPassword());
+                    CryptoFFT.Decrypt(frqRight, wpi.GetPassword());
+                    encryptedSound.WriteAudioLeft(FourierTransform.IFFT_segmented(frqLeft));
+                    encryptedSound.WriteAudioRight(FourierTransform.IFFT_segmented(frqRight));
+                }
+
+                Dispatcher.Invoke(new AddSoundPanelDelegate(CommitProcessedSoundToInterface), encryptedSound, wpi.GetName());
+            }
+        }
+
         private void CommitLoadToInterface(WavFormatManager wfm, String displayName)
         {
             buttonAddSoundFromFile.IsEnabled = true;
@@ -79,9 +184,10 @@ namespace fftWavEncryption
             if (wfm != null)
             {
                 SoundPanel sp = new SoundPanel(wfm, displayName);
-                sp.SetEncryptButtonHandler(new Action(() => { MessageBox.Show("Encrypt"); }));
-                sp.SetDecryptButtonHandler(new Action(() => { MessageBox.Show("Decrypt"); }));
-                sp.SetPlayButtonHandler(new Action(() => { MessageBox.Show("Play"); }));
+                sp.SetEncryptButtonHandler(new Action(() => { ActionEncrypt(sp); }));
+                sp.SetDecryptButtonHandler(new Action(() => { ActionDecrypt(sp); }));
+                sp.SetPlayButtonHandler(new Action(() => { ActionPlay(sp); }));
+                sp.SetSaveButtonHandler(new Action(() => { ActionSave(sp); }));
 
                 int z = soundPanelList.Count;
 
@@ -90,53 +196,18 @@ namespace fftWavEncryption
             }
         }
 
-        private void ThreadFunction()
+        private void CommitProcessedSoundToInterface(WavFormatManager wfm, String displayName)
         {
-            String filename;
-            OpenFileDialog ofd = new OpenFileDialog();
-            if (ofd.ShowDialog() == true)
-            {
-                filename = ofd.FileName;
-                WavFormatManager wfm = new WavFormatManager(filename);
+            SoundPanel sp = new SoundPanel(wfm, displayName);
+            sp.SetEncryptButtonHandler(new Action(() => { ActionEncrypt(sp); }));
+            sp.SetDecryptButtonHandler(new Action(() => { ActionDecrypt(sp); }));
+            sp.SetPlayButtonHandler(new Action(() => { ActionPlay(sp); }));
+            sp.SetSaveButtonHandler(new Action(() => { ActionSave(sp); }));
 
-                if (wfm.GetNumberOfChannels() == 1)
-                {
-                    Complex[] monoF = FourierTransform.FFT_segmented(wfm.ReadAudioMono());
-                    wfm.WriteAudioMono(FourierTransform.IFFT_segmented(monoF));
-                }
-                else
-                {
-                    Complex[] leftF = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
-                    Complex[] rightF = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
-                    CryptoFFT.Encrypt(leftF);
-                    CryptoFFT.Encrypt(rightF);
-                    wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
-                    wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
+            int z = soundPanelList.Count;
 
-                    SaveFileDialog sfd_ = new SaveFileDialog();
-                    if (sfd_.ShowDialog() == true)
-                    {
-                        filename = sfd_.FileName;
-                        wfm.SetBitsPerSample(32);
-                        wfm.EncodeFile(filename);
-                    }
-
-                    leftF = FourierTransform.FFT_segmented(wfm.ReadAudioLeft());
-                    rightF = FourierTransform.FFT_segmented(wfm.ReadAudioRight());
-                    CryptoFFT.Decrypt(leftF);
-                    CryptoFFT.Decrypt(rightF);
-                    wfm.WriteAudioLeft(FourierTransform.IFFT_segmented(leftF));
-                    wfm.WriteAudioRight(FourierTransform.IFFT_segmented(rightF));
-                }
-
-                SaveFileDialog sfd = new SaveFileDialog();
-                if (sfd.ShowDialog() == true)
-                {
-                    filename = sfd.FileName;
-                    wfm.SetBitsPerSample(32);
-                    wfm.EncodeFile(filename);
-                }
-            }
+            stackPanelSoundItems.Children.Insert(z, sp);
+            soundPanelList.Add(sp);
         }
     }
 }
