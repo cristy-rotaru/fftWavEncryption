@@ -83,6 +83,8 @@
     <Compile Include="CryptoFFT.cs" />
     <Compile Include="FourierTransform.cs" />
     <Compile Include="SoundPanel.cs" />
+    <Compile Include="StreamPlayer.cs" />
+    <Compile Include="WaveStreamProvider.cs" />
     <Compile Include="WavFormatManager.cs" />
     <Compile Include="WindowMain.xaml.cs">
       <DependentUpon>WindowMain.xaml</DependentUpon>

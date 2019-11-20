@@ -52,6 +52,12 @@ namespace fftWavEncryption
             }
         }
 
+        private void buttonStopPlayback_Click(object sender, RoutedEventArgs e)
+        {
+            StreamPlayer.Stop();
+            textBlockNowPlaying.Text = "";
+        }
+
         private void ActionEncrypt(SoundPanel sp)
         {
             Thread th = new Thread(new ThreadStart(() => { ThreadFunctionActionEncrypt(sp.GetFormatManager(), sp.GetDisplayName()); }));
@@ -68,7 +74,8 @@ namespace fftWavEncryption
 
         private void ActionPlay(SoundPanel sp)
         {
-            MessageBox.Show("Play " + sp.GetDisplayName());
+            StreamPlayer.Play(sp.GetFormatManager());
+            textBlockNowPlaying.Text = "Now playing: " + sp.GetDisplayName();
         }
 
         private void ActionSave(SoundPanel sp)
