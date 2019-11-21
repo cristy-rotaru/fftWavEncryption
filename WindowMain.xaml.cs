@@ -23,6 +23,7 @@ namespace fftWavEncryption
     public partial class WindowMain : Window
     {
         private delegate void AddSoundPanelDelegate(WavFormatManager wfm, String displayName);
+        public delegate void PlotGraphsDelegate(float[] leftWave, float[] rightWave, float[] leftFourier, float[] rightFourier);
 
         List<SoundPanel> soundPanelList = new List<SoundPanel>();
 
@@ -33,7 +34,28 @@ namespace fftWavEncryption
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            lineChartWaveLeft.LowLimit = -1;
+            lineChartWaveLeft.HighLimit = 1;
+            lineChartWaveLeft.PlotStep = 8;
+            lineChartWaveLeft.InvertXAxis = true;
 
+            lineChartWaveRight.LowLimit = -1;
+            lineChartWaveRight.HighLimit = 1;
+            lineChartWaveRight.PlotStep = 8;
+            lineChartWaveRight.InvertXAxis = true;
+
+            lineChartFourierLeft.LowLimit = -5;
+            lineChartFourierLeft.HighLimit = 5;
+            lineChartFourierLeft.PlotStep = 8;
+
+            lineChartFourierRight.LowLimit = -5;
+            lineChartFourierRight.HighLimit = 5;
+            lineChartFourierRight.PlotStep = 8;
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            StreamPlayer.Stop();
         }
 
         private void buttonAddSoundFromFile_Click(object sender, RoutedEventArgs e)
@@ -74,7 +96,7 @@ namespace fftWavEncryption
 
         private void ActionPlay(SoundPanel sp)
         {
-            StreamPlayer.Play(sp.GetFormatManager());
+            StreamPlayer.Play(sp.GetFormatManager(), new PlotGraphsDelegate(DrawPlots), this);
             textBlockNowPlaying.Text = "Now playing: " + sp.GetDisplayName();
         }
 
@@ -215,6 +237,15 @@ namespace fftWavEncryption
 
             stackPanelSoundItems.Children.Insert(z, sp);
             soundPanelList.Add(sp);
+        }
+
+        private void DrawPlots(float[] leftWave, float[] rightWave, float[] leftFourier, float[] rightFourier)
+        {
+            lineChartWaveLeft.Plot(leftWave);
+            lineChartWaveRight.Plot(rightWave);
+
+            lineChartFourierLeft.Plot(leftFourier);
+            lineChartFourierRight.Plot(rightFourier);
         }
     }
 }

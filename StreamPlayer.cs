@@ -10,19 +10,24 @@ namespace fftWavEncryption
     class StreamPlayer
     {
         private static WaveOut wavePlayer;
+        private static WaveStreamProvider wsp;
 
-        public static void Play(WavFormatManager wfm)
+        public static void Play(WavFormatManager wfm, WindowMain.PlotGraphsDelegate plotDelegate, WindowMain handle)
         {
             wavePlayer?.Stop();
+            wsp?.StopPlotting();
             wavePlayer = new WaveOut();
+            wsp = new WaveStreamProvider(wfm, plotDelegate, handle);
 
-            wavePlayer.Init(new WaveStreamProvider(wfm));
+            wavePlayer.DesiredLatency = 80;
+            wavePlayer.Init(wsp);
             wavePlayer.Play();
         }
 
         public static void Stop()
         {
             wavePlayer?.Stop();
+            wsp?.StopPlotting();
         }
     }
 }
