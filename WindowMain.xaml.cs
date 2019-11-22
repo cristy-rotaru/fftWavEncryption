@@ -37,12 +37,10 @@ namespace fftWavEncryption
             lineChartWaveLeft.LowLimit = -1;
             lineChartWaveLeft.HighLimit = 1;
             lineChartWaveLeft.PlotStep = 8;
-            lineChartWaveLeft.InvertXAxis = true;
 
             lineChartWaveRight.LowLimit = -1;
             lineChartWaveRight.HighLimit = 1;
             lineChartWaveRight.PlotStep = 8;
-            lineChartWaveRight.InvertXAxis = true;
 
             lineChartFourierLeft.LowLimit = -5;
             lineChartFourierLeft.HighLimit = 5;
